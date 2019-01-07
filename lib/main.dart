@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_poc/songs.dart';
 import 'package:flutter_poc/bottom_controls.dart';
 import 'package:flutter_poc/theme.dart';
+import 'package:flutter_poc/fluttery/gestures.dart';
 
 void main() {
   runApp(new MyApp());
@@ -27,6 +28,32 @@ class MyHomePAge extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePAge> {
+
+  double _seekPercent = 0.25;
+  PolarCoord _startDragCoord;
+  double _startDragPercent;
+  double _currentDragPercent;
+
+  _onDragStart(PolarCoord startCoord) {
+    _startDragCoord = startCoord;
+    _startDragPercent = _seekPercent;
+  }
+
+  _onDragUpdate(PolarCoord updateCoord) {
+    final dragAngle = updateCoord.angle - _startDragCoord.angle;
+    final dragPercent = dragAngle / (2 * pi);
+
+    setState(() => _currentDragPercent = (_startDragPercent + dragPercent) % 1.0);
+  }
+
+  _onDragEnd() {
+    setState(() {
+      _seekPercent = _currentDragPercent;
+      _currentDragPercent = null;
+      _startDragPercent = 0.0;
+      _startDragCoord = null;
+    });
+  }
   @override
   Widget build(BuildContext context) {
     // final size = MediaQuery.of(context).size;
@@ -51,27 +78,32 @@ class _MyHomePageState extends State<MyHomePAge> {
         children: <Widget>[
           // Seek bar
           new Expanded(
-            child: Container(
-              width: double.infinity,
-              height: double.infinity,
-              color: Colors.red,
-              child: new Center(
-                child: new Container(
-                  height: 140.0,
-                  width: 140.0,
-                  child: new RadialProgressBar(
-                    trackColor: new Color(0xFFDDDDDD),
-                    progressPercent: 0.25,
-                    progressColor: accentColor,
-                    thumbPosition: 0.25,
-                   thumbColor: lightAccentColor,
-                   innerPadding: const EdgeInsets.all(10.0),
+            child: new RadialDragGestureDetector(
+              onRadialDragStart: _onDragStart,
+              onRadialDragUpdate: _onDragUpdate,
+              onRadialDragEnd: _onDragEnd,
+              child: Container(
+                width: double.infinity,
+                height: double.infinity,
+                // color: Colors.red,
+                child: new Center(
+                  child: new Container(
+                    height: 140.0,
+                    width: 140.0,
+                    child: new RadialProgressBar(
+                      trackColor: new Color(0xFFDDDDDD),
+                      progressPercent: _currentDragPercent ?? _seekPercent,
+                      progressColor: accentColor,
+                      thumbPosition: _currentDragPercent ?? _seekPercent,
+                     thumbColor: lightAccentColor,
+                     innerPadding: const EdgeInsets.all(10.0),
 
-                    child: new ClipOval(
-                      clipper: new CircleClipper(),
-                      child: Image.network(
-                        demoPlaylist.songs[0].albumArtUrl,
-                        fit: BoxFit.cover,
+                      child: new ClipOval(
+                        clipper: new CircleClipper(),
+                        child: Image.network(
+                          demoPlaylist.songs[0].albumArtUrl,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                     ),
                   ),
