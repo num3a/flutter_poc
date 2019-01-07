@@ -1,14 +1,15 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_poc/theme.dart';
 import 'package:flutter_poc/songs.dart';
+import 'package:flutter_poc/bottom_controls.dart';
+import 'package:flutter_poc/theme.dart';
 
 void main() {
   runApp(new MyApp());
 }
 
-// TODO: https://www.youtube.com/watch?v=FE7Vtzq52xg => 11:54
+// TODO: https://www.youtube.com/watch?v=FE7Vtzq52xg => 00:59:55 => Seek Bar Draggable
 
 class MyApp extends StatelessWidget {
   @override
@@ -35,7 +36,7 @@ class _MyHomePageState extends State<MyHomePAge> {
         backgroundColor: Colors.transparent,
         elevation: 0.0,
         leading: new IconButton(
-            icon: new Icon(Icons.menu),
+            icon: new Icon(Icons.arrow_back_ios),
             color: const Color(0xFFDDDDDD),
             onPressed: () {}),
         title: new Text(''),
@@ -50,15 +51,29 @@ class _MyHomePageState extends State<MyHomePAge> {
         children: <Widget>[
           // Seek bar
           new Expanded(
-            child: new Center(
-              child: new Container(
-                height: 125.0,
-                width: 125.0,
-                child: new ClipOval(
-                  clipper: new CircleClipper(),
-                  child: Image.network(
-                    demoPlaylist.songs[0].albumArtUrl,
-                    fit: BoxFit.cover,
+            child: Container(
+              width: double.infinity,
+              height: double.infinity,
+              color: Colors.red,
+              child: new Center(
+                child: new Container(
+                  height: 140.0,
+                  width: 140.0,
+                  child: new RadialProgressBar(
+                    trackColor: new Color(0xFFDDDDDD),
+                    progressPercent: 0.25,
+                    progressColor: accentColor,
+                    thumbPosition: 0.25,
+                   thumbColor: lightAccentColor,
+                   innerPadding: const EdgeInsets.all(10.0),
+
+                    child: new ClipOval(
+                      clipper: new CircleClipper(),
+                      child: Image.network(
+                        demoPlaylist.songs[0].albumArtUrl,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
                 ),
               ),
@@ -79,153 +94,155 @@ class _MyHomePageState extends State<MyHomePAge> {
   }
 }
 
-class BottomControls extends StatelessWidget {
-  const BottomControls({
-    Key key,
-  }) : super(key: key);
+class RadialProgressBar extends StatefulWidget {
+  final double trackWidth;
+  final Color trackColor;
+  final double progressWidth;
+  final Color progressColor;
+  final double progressPercent;
+  final double thumbSize;
+  final Color thumbColor;
+  final double thumbPosition;
+  final EdgeInsets outerPadding;
+  final EdgeInsets innerPadding;
+
+  final Widget child;
+
+  RadialProgressBar({
+    this.trackWidth = 3.0,
+    this.trackColor = Colors.grey,
+    this.progressWidth = 5.0,
+    this.progressColor = Colors.black,
+    this.progressPercent = 0.0,
+    this.thumbSize = 10.0,
+    this.thumbColor = Colors.black,
+    this.thumbPosition = 0.0,
+    this.outerPadding = const EdgeInsets.all(0.0),
+    this.innerPadding = const EdgeInsets.all(0.0),
+    this.child,
+  });
+
+  @override
+  _RadialProgressBarState createState() => _RadialProgressBarState();
+}
+
+class _RadialProgressBarState extends State<RadialProgressBar> {
+  EdgeInsets _insetsForPainter() {
+    // Make room for the painted track, progress, and thumb. We divide by 2.0
+    // because we want to allow flush painting against the track, so we only
+    // need to account the thickness outside the track, not inside
+    final outerThickness = max(
+      widget.trackWidth,
+      max(
+        widget.progressWidth,
+        widget.thumbSize,
+      ),
+    )/2.0;
+    return new EdgeInsets.all(outerThickness);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return new Container(
-      width: double.infinity,
-      child: new Material(
-        color: accentColor,
-        child: new Padding(
-          padding: const EdgeInsets.only(top: 40.0, bottom: 50.0),
-          child: new Column(
-            children: <Widget>[
-              new RichText(
-                text: new TextSpan(text: '', children: [
-                  new TextSpan(
-                      text: 'Song Title \n',
-                      style: new TextStyle(
-                        color: Colors.white,
-                        fontSize: 14.0,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 4.0,
-                        height: 1.5,
-                      )),
-                  new TextSpan(
-                      text: 'Artist Name',
-                      style: new TextStyle(
-                        color: Colors.white.withOpacity(0.75),
-                        fontSize: 12.0,
-                        letterSpacing: 3.0,
-                        height: 1.5,
-                      ))
-                ]),
-              ),
-              new Row(
-                children: <Widget>[
-                  new Expanded(
-                    child: new Container(),
-                  ),
-                  new PreviousButton(),
-                  new Expanded(
-                    child: new Container(),
-                  ),
-                  new PlayPauseButton(),
-                  new Expanded(
-                    child: new Container(),
-                  ),
-                  new NextButton(),
-                  new Expanded(
-                    child: new Container(),
-                  ),
-                ],
-              )
-            ],
-          ),
+    return Padding(
+      padding: widget.outerPadding,
+      child: new CustomPaint(
+        foregroundPainter: new RadialSeekBarPainter(
+          trackWidth: widget.trackWidth,
+          trackColor: widget.trackColor,
+          progressColor: widget.progressColor,
+          progressWidth: widget.progressWidth,
+          progressPercent: widget.progressPercent,
+          thumbSize: widget.thumbSize,
+          thumbColor: widget.thumbColor,
+          thumbPosition: widget.thumbPosition,
+        ),
+        child: Padding(
+          padding: _insetsForPainter() + widget.innerPadding,
+          child: widget.child,
         ),
       ),
     );
   }
 }
 
-class PreviousButton extends StatelessWidget {
-  const PreviousButton({
-    Key key,
-  }) : super(key: key);
+class RadialSeekBarPainter extends CustomPainter {
+  final double trackWidth;
+  final Paint trackPaint;
+
+  final double progressWidth;
+  final double progressPercent;
+  final Paint progressPaint;
+
+  final double thumbSize;
+  final double thumbPosition;
+  final Paint thumbPaint;
+
+  RadialSeekBarPainter({
+    @required this.trackWidth,
+    @required trackColor,
+    @required this.progressWidth,
+    @required progressColor,
+    @required this.progressPercent,
+    @required this.thumbSize,
+    @required thumbColor,
+    @required this.thumbPosition,
+  })  : trackPaint = new Paint()
+          ..color = trackColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = trackWidth,
+        progressPaint = new Paint()
+          ..color = progressColor
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = progressWidth
+          ..strokeCap = StrokeCap.round,
+        thumbPaint = new Paint()
+          ..color = thumbColor
+          ..style = PaintingStyle.fill;
 
   @override
-  Widget build(BuildContext context) {
-    return new IconButton(
-      splashColor: lightAccentColor,
-      highlightColor: Colors.transparent,
-      icon: new Icon(
-        Icons.skip_previous,
-        color: Colors.white,
-        size: 35.0,
-      ),
-      onPressed: () {
-        // TODO: to be implementted
-      },
+  void paint(Canvas canvas, Size size) {
+
+    final outerThickness = max(trackWidth, max(progressWidth, thumbSize));
+    Size constrainedSize = new Size(
+      size.width - outerThickness,
+      size.height - outerThickness,
     );
-  }
-}
 
-class PlayPauseButton extends StatelessWidget {
-  const PlayPauseButton({
-    Key key,
-  }) : super(key: key);
+    final center = new Offset(size.width / 2, size.height / 2);
+    final radius = min(constrainedSize.width, constrainedSize.height) / 2;
 
-  @override
-  Widget build(BuildContext context) {
-    return new RawMaterialButton(
-      shape: new CircleBorder(),
-      fillColor: Colors.white,
-      splashColor: lightAccentColor,
-      highlightColor: lightAccentColor.withOpacity(0.5),
-      elevation: 10.0,
-      highlightElevation: 5.0,
-      onPressed: () {
-        //TODO:
-      },
-      child: new Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: new Icon(
-          Icons.play_arrow,
-          color: darkAccentColor,
-          size: 35.0,
+    // Paint track
+    canvas.drawCircle(
+      center,
+      radius,
+      trackPaint,
+    );
+
+    final progressAngle = 2 * pi * progressPercent;
+    // Paint progress
+    canvas.drawArc(
+        new Rect.fromCircle(
+          center: center,
+          radius: radius,
         ),
-      ),
-    );
-  }
+        -pi / 2,
+        progressAngle,
+        false, progressPaint);
+
+    // Paint thumb
+    final thumbAngle = 2 * pi * thumbPosition - (pi / 2);
+    final thumbX = cos(thumbAngle) * radius;
+    final thumbY = sin(thumbAngle) * radius;
+
+    final thumbCenter = new Offset(thumbX, thumbY) + center;
+    final thumbRadius = thumbSize / 2.0;
+
+    canvas.drawCircle(thumbCenter, thumbRadius, thumbPaint);
 }
 
-class NextButton extends StatelessWidget {
-  const NextButton({
-    Key key,
-  }) : super(key: key);
-
   @override
-  Widget build(BuildContext context) {
-    return new IconButton(
-      splashColor: lightAccentColor,
-      highlightColor: Colors.transparent,
-      icon: new Icon(
-        Icons.skip_next,
-        color: Colors.white,
-        size: 35.0,
-      ),
-      onPressed: () {
-        // TODO: to be implementted
-      },
-    );
-  }
-}
-
-class CircleClipper extends CustomClipper<Rect> {
-  @override
-  Rect getClip(Size size) {
-    return new Rect.fromCircle(
-      center: new Offset(size.width / 2, size.height / 2),
-      radius: min(size.width, size.height) / 2,
-    );
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Rect> oldClipper) {
+  bool shouldRepaint(CustomPainter oldDelegate) {
+    // TODO: implement shouldRepaint
     return true;
   }
 }
