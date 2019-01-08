@@ -71,6 +71,17 @@ class _MyHomePageState extends State<MyHomePAge> {
             new Container(
               width: double.infinity,
               height: 125.0,
+              child: new Visualizer(
+                  builder: (BuildContext context, List<int> fft) {
+                return new CustomPaint(
+                  painter: new VisualizerPainter(
+                    fft: fft,
+                    height: 125.0,
+                    color: accentColor,
+                  ),
+                  child: new Container(),
+                );
+              }),
             ),
 
             // Song titile, artist name etc.
@@ -79,6 +90,33 @@ class _MyHomePageState extends State<MyHomePAge> {
         ),
       ),
     );
+  }
+}
+
+class VisualizerPainter extends CustomPainter {
+  final List<int> fft;
+  final double height;
+  final Color color;
+
+  final Paint wavePaint;
+
+  VisualizerPainter({this.fft, this.height, this.color})
+  : wavePaint = new Paint()
+  ..color = color.withOpacity(0.5)
+  ..style = PaintingStyle.fill;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // TODO: implement paint
+    canvas.drawRect(
+      new Rect.fromLTWH(0.0, 0.0, size.width, size.height),
+      wavePaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) {
+    return true;
   }
 }
 
@@ -123,12 +161,11 @@ class _AudioRadialSeekBarState extends State<AudioRadialSeekBar> {
               player.seek(new Duration(milliseconds: seekMillis));
             },
             child: new Container(
-              color: accentColor,
-              child: new Image.network(
-                widget.albumArtUrl,
-                fit: BoxFit.cover,
-              )
-            ),
+                color: accentColor,
+                child: new Image.network(
+                  widget.albumArtUrl,
+                  fit: BoxFit.cover,
+                )),
           );
         });
   }

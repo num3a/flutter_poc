@@ -131,7 +131,10 @@ class PlayPauseButton extends StatelessWidget {
           }
 
           return new RawMaterialButton(
-            shape: new CircleBorder(),
+            // new CircleBorder(),
+            shape: new RoundedRectangleBorder(
+              borderRadius: new BorderRadius.circular(35),
+            ),
             fillColor: buttonColor,
             splashColor: lightAccentColor,
             highlightColor: lightAccentColor.withOpacity(0.5),
